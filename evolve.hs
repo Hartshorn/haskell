@@ -1,10 +1,10 @@
 import Control.Monad
 import qualified Data.Set as Set
 
-data Organism  = Organism { getAlive :: Bool, 
-                            getEnergy :: Int, 
-                            getDirection :: Int, 
-                            getGenes :: [Int] } 
+data Organism  = Organism { getAlive :: Bool,
+                            getEnergy :: Int,
+                            getDirection :: Int,
+                            getGenes :: [Int] }
                  deriving (Show)
 type Point     = (Int, Int)
 type DataPoint = (Point, Organism)
@@ -32,12 +32,11 @@ pointList = map fst w
 animalList :: [Organism]
 animalList = map snd w
 
-moveAnimal :: DataPoint -> DataPoint
-moveAnimal dp = 
-    let newX = (fst $ fst dp) + 1
-        newY = (snd $ fst dp) + 1
-        newDp = ((newX, newY), snd dp)
-    in newDp
+moveAnimal :: Point -> Point
+moveAnimal p =
+    let newX = (fst p) + 1
+        newY = (snd p) + 1
+    in (newX, newY)
 
 addAnimal :: DataPoint -> World
 addAnimal dp = dp:w
@@ -46,7 +45,7 @@ removeDead :: World
 removeDead = filter (\x -> (getAlive $ snd x) == True) w
 
 eatAnimal :: Organism -> Organism
-eatAnimal hungryA = 
+eatAnimal hungryA =
     let fullA = Organism (getAlive hungryA)
                          (getEnergy hungryA + pe)
                          (getDirection hungryA)
@@ -62,18 +61,17 @@ turnAnimal a =
     in turnedA
 
 reproduceAnimal :: Organism -> Organism
-reproduceAnimal a = 
+reproduceAnimal a =
         let repA = Organism (getAlive a)
                             (getEnergy a `div` 2)
                             (getDirection a)
                             (getGenes a)
         in repA
 
-animalEvents :: Organism -> Organism
-animalEvents = turnAnimal . reproduceAnimal . eatAnimal
-
-dataPointEvents :: DataPoint -> DataPoint
-dataPointEvents = moveAnimal
+animalEvents :: DataPoint -> DataPoint
+animalEvents dp  =
+        let o = turnAnimal . reproduceAnimal . eatAnimal . snd $ dp
+        in (moveAnimal $ fst dp, o) :: DataPoint
 
 
 
@@ -84,7 +82,7 @@ showMenu = do
     putStrLn "\t----------------\n"
 
 showPoint :: Point -> IO ()
-showPoint p =  do 
+showPoint p =  do
     putStrLn $ "\nThe current location is: " ++ show p
 
 showOrganism :: Organism -> IO ()
@@ -95,18 +93,18 @@ showOrganism o = do
     putStrLn $ "Alive: " ++ a
     putStrLn $ "Energy: " ++ e
     putStrLn $ "Direction: " ++ d
-    
+
 main = forever $ do
     showMenu
-    
+
     putStrLn "Make a choice: "
     choiceAsString <- getLine
     putStrLn "Enter an index: "
     indexString <- getLine
-    
+
     let choice = read choiceAsString :: Int
     let index  = read indexString :: Int
-    
+
     if choice == 1
         then do
             putStrLn "Show Index"
