@@ -1,14 +1,16 @@
 import Control.Monad
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
-data Organism  = Organism { getAlive :: Bool,
+data Organism  = Organism { getAlive  :: Bool,
                             getEnergy :: Int,
-                            getDirection :: Int,
-                            getGenes :: [Int] }
+                            getDirec  :: Int,
+                            getGenes  :: [Int] }
                  deriving (Show)
 type Point     = (Int, Int)
 type DataPoint = (Point, Organism)
 type World     = [DataPoint] -- could this be a map or set?
+type Time      = [World] -- snapshots of the world over time
 
 fstDP :: DataPoint
 fstA :: Organism
@@ -26,11 +28,14 @@ wd = 100
 pe = 80
 w = [fstDP]
 
-pointList :: [Point]
-pointList = map fst w
+pointList :: World -> [Point]
+pointList w = map fst w
 
-animalList :: [Organism]
-animalList = map snd w
+animalList :: World -> [Organism]
+animalList w = map snd w
+
+makeWorld :: [Point] -> [Organism] -> World
+makeWorld p o = zip p o
 
 moveAnimal :: Point -> Point
 moveAnimal p =
@@ -38,11 +43,18 @@ moveAnimal p =
         newY = (snd p) + 1
     in (newX, newY)
 
-addAnimal :: DataPoint -> World
-addAnimal dp = dp:w
+addAnimal :: DataPoint -> World -> World
+addAnimal dp w = dp:w
 
-removeDead :: World
-removeDead = filter (\x -> (getAlive $ snd x) == True) w
+-- this needs to keep the points - not just zip them back together. . .
+removeDead :: World -> World
+removeDead w = 
+    let wO = animalList w
+        wP = pointList w
+        nD = filter ((<) 100 . getEnergy) wO
+        newW = makeWorld wP nD
+    in newW
+
 
 eatAnimal :: Organism -> Organism
 eatAnimal hungryA =
@@ -73,6 +85,27 @@ animalEvents dp  =
         let o = turnAnimal . reproduceAnimal . eatAnimal . snd $ dp
         in (moveAnimal $ fst dp, o) :: DataPoint
 
+addAnimalDoStuff :: World -> World
+addAnimalDoStuff wld = 
+    let newX = (fst (fst $ wld!!0)) + 1
+        newY = (snd (fst $ wld!!0))
+        newA = Organism True
+                        1000
+                        (getDirection (snd $ wld!!0) + 1)
+                        (getGenes (snd $ wld!!0))
+        newDP = ((newX, newY), newA) :: DataPoint
+        addA = addAnimal newDP wld
+        newW = map animalEvents addA
+    in newW
+    
+overTime :: [World] -> [World]
+overTime wl = 
+    if (length wl < 10)
+        then let newWL = map addAnimalDoStuff wl
+             in overTime newWL ++ wl
+    else wl
+
+
 
 
 showMenu :: IO ()
@@ -93,6 +126,8 @@ showOrganism o = do
     putStrLn $ "Alive: " ++ a
     putStrLn $ "Energy: " ++ e
     putStrLn $ "Direction: " ++ d
+    
+
 
 main = forever $ do
     showMenu
